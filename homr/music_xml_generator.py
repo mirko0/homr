@@ -759,8 +759,12 @@ def build_note_chord(
             is_first = False
 
         if rests:
-            assert group_duration > Fraction(0)
-            if notes:
+            # A pitchless note token (e.g. "note_32 . # _ _ upper") is bucketed as a
+            # rest, and _group_notes can key it at zero duration. Asserting here loses
+            # the whole page; the same expression is already treated as a condition
+            # below, and build_backup() rejects a non-positive duration anyway, so a
+            # zero-duration backup was never emittable.
+            if notes and group_duration > Fraction(0):
                 # There are other notes, so to avoid rest being merged into chord, we emit a backup
                 result.append(build_backup(group_duration, state))
             # Ideally we expect len(rests) == 1, but in dataset we see cases where

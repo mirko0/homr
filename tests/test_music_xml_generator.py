@@ -139,6 +139,36 @@ barline . . . . ."""
             else:
                 self.assertGreaterEqual(v, 5)
 
+    def test_pitchless_grace_note_does_not_abort_the_page(self) -> None:
+        """A grace note with no pitch must not abort the whole page.
+
+        _group_notes keys grace notes at duration zero, and a note whose pitch
+        failed to decode is bucketed as a rest. A grace note that is BOTH lands
+        in build_note_chord with rests and a zero group duration, where the
+        assertion fired and took the entire page's MusicXML with it.
+
+        Seen decoding S004 (Chopin op. 28 no. 7) at 300 DPI, which emits
+        "note_4G . # _ _ upper" next to a real grace note.
+        """
+        pitchless_grace = """clef_G2 . . . . upper
+keySignature_3 . . . . .
+timeSignature/4 . . . . .
+note_4G G4 # _ _ upper&note_4G . # _ _ upper
+note_4 B4 _ _ _ upper
+barline . . . . ."""
+        tokens = read_token_lines(pitchless_grace.splitlines())
+
+        xml = generate_xml(XmlGeneratorArguments(), [tokens], "")
+
+        measure = _first_measure(xml)
+        # The real notes survive; the pitchless grace must not take them with it.
+        pitches = [_pitch(n) for n in _notes(measure)]
+        self.assertIn("G", pitches)
+        self.assertIn("B", pitches)
+        # No backup may carry a non-positive duration.
+        for duration in _backups(measure):
+            self.assertGreater(duration, 0)
+
     def test_begin_chord_with_standalone_rests(self) -> None:
         """
         If the lower position consists of a standalone rest then start the
