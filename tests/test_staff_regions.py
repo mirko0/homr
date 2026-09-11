@@ -1,6 +1,7 @@
 import unittest
 
 from homr.model import MultiStaff, Staff, StaffPoint
+from homr.staff_parsing import _calculate_region
 from homr.staff_regions import StaffRegions
 
 
@@ -54,3 +55,14 @@ class TestStaffRegions(unittest.TestCase):
         self.assertEqual(100, regions.get_start_of_closest_staff_below(99))
         self.assertEqual(700, regions.get_start_of_closest_staff_below(600))
         self.assertEqual(1e12, regions.get_start_of_closest_staff_below(800))
+
+    def test_region_survives_a_detection_spanning_the_staff(self) -> None:
+        # A bogus staff detection spanning this one made the neighbour clamps
+        # cross (top 450, bottom 250); the staff image was then scaled to
+        # nothing and cv2.resize aborted the page ("inv_scale_x > 0").
+        staff = build_staff(300, 400)
+        spanning = build_staff(250, 450)
+        regions = StaffRegions([MultiStaff([staff, spanning], [])])
+        _x_min, y_min, _x_max, y_max = _calculate_region(staff, regions)
+        self.assertLess(y_min, staff.min_y)
+        self.assertGreater(y_max, staff.max_y)
