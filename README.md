@@ -1,5 +1,17 @@
 # homr
 
+> **About this fork.** This is a fork of [liebharc/homr](https://github.com/liebharc/homr) by Christian Liebhardt and
+> contributors, licensed under the [GNU AGPL-3.0](LICENSE) like the original. It carries three small changes on top of
+> upstream commit [`457e7c6`](https://github.com/liebharc/homr/commit/457e7c6):
+>
+> - [`140010b`](../../commit/140010b) Don't abort the page on a pitchless grace note
+> - [`7eb7186`](../../commit/7eb7186) Don't abort the page when a staff detection overlaps its neighbour
+> - [`0cd4179`](../../commit/0cd4179) CI: free runner disk before installing torch
+>
+> The two fixes come with tests. Everything else, including the documentation below, is upstream's. For the current version,
+> issues and discussion, please use the [upstream repository](https://github.com/liebharc/homr). This fork is not
+> published to PyPI; `pip install homr` / `uvx homr` install the upstream package.
+
 homr is an Optical Music Recognition (OMR) software designed to transform camera pictures or PDFs of sheet music into
 machine-readable MusicXML format. The resulting [MusicXML](https://www.w3.org/2021/06/musicxml40/) files can be further
 processed using tools such as [musescore](https://musescore.com/).
