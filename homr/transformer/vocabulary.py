@@ -618,6 +618,13 @@ def _fix_over_eager_tuplets(chords: list[list[EncodedSymbol]]) -> list[list[Enco
     """
     The transformer tends to add too many tuplets, so we remove them
     based on the length of a measurement.
+
+    NOTE (2026-08-19 experiment, reverted): two meter-aware variants
+    were measured end to end and both lost downstream (closer-to-mean
+    +36, exact-fit rescue +43 note mismatches on the 13-piece set);
+    the fusion-side tuplet restoration already covers the rescued
+    marks, and extra kept tuplets add noise elsewhere. Keeping the
+    original rule.
     """
     measures = _group_into_measures(chords)
     mean = _get_typical_duration_of_measures(measures)

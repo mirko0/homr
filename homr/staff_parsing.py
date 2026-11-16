@@ -79,6 +79,12 @@ def get_tr_omr_canvas_size(
     else:
         # The width is the limiting factor.
         new_shape = [tr_omr_max_width, int(height / width * tr_omr_max_width)]
+    # A degenerate staff region (near-zero width or height) floors the
+    # scaled dimension to 0 and cv2.resize aborts the whole page
+    # (S034 page 3: inv_scale_x > 0 assertion). Clamp to 1 px; the
+    # staff yields no usable symbols but the page survives.
+    new_shape[0] = max(1, new_shape[0])
+    new_shape[1] = max(1, new_shape[1])
     return np.array(new_shape)
 
 
@@ -278,11 +284,41 @@ def parse_staffs(
                 eprint("Ignoring staff due to selected_staff argument", i)
                 i += 1
                 continue
-            result_staff = parse_staff_image(debug, i, staff, image, regions, config)
+            try:
+                result_staff = parse_staff_image(debug, i, staff, image, regions, config)
+            except Exception as e:
+                # One corrupt staff must not abort the page: log and
+                # continue with the remaining staffs (S034 page 3 lost
+                # all 5 systems to a single degenerate staff region).
+                eprint("Skipping staff", i, "after error:", e)
+                i += 1
+                continue
             if len(result_staff) == 0:
                 eprint("Skipping empty staff", i)
                 i += 1
                 continue
+            # Per-measure decoder confidence (min over the measure's
+            # rhythm/pitch softmax maxima), split at barline symbols.
+            # Emitted as a parseable log line; downstream fusion uses it
+            # as a homr reliability signal.
+            try:
+                import json as _json
+                measures_conf = []
+                cur: list[float] = []
+                for sym in result_staff:
+                    if sym.rhythm == "barline":
+                        measures_conf.append(
+                            round(min(cur), 4) if cur else None)
+                        cur = []
+                        continue
+                    c = getattr(sym, "confidence", None)
+                    if c is not None:
+                        cur.append(c)
+                measures_conf.append(round(min(cur), 4) if cur else None)
+                eprint("[measure-conf]", _json.dumps(
+                    {"staff": i, "voice": voice, "conf": measures_conf}))
+            except Exception:
+                pass
             result_staff.append(EncodedSymbol("newline"))
             result_for_voice.extend(result_staff)
             i += 1
